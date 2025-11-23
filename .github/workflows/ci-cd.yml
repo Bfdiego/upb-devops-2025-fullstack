@@ -1,0 +1,77 @@
+name: CI-CD
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install deps and run tests (backend)
+        working-directory: backend
+        run: |
+          uv sync
+          uv run pytest
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: test-backend
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+          FRONTEND_HOST: ${{ secrets.FRONTEND_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$BACKEND_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$FRONTEND_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy backend
+        env:
+          BACKEND_HOST: ${{ secrets.BACKEND_HOST }}
+          SSH_KEY_PATH: $HOME/.ssh/id_rsa
+          SERVER_USER: ubuntu
+        run: |
+          bash scripts/deploy_backend.sh
+
+      - name: Deploy frontend
+        env:
+          FRONTEND_HOST: ${{ secrets.FRONTEND_HOST }}
+          SSH_KEY_PATH: $HOME/.ssh/id_rsa
+          SERVER_USER: ubuntu
+        run: |
+          bash scripts/deploy_frontend.sh
