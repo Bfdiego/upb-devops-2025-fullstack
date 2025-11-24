@@ -12,27 +12,53 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.10"
+
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           version: "0.4.15"
           enable-cache: true
-      - run: docker compose down -v --remove-orphans
-      - run: docker compose up -d db mailcatcher
-      - name: Migrate DB
+
+      - name: Start DB container
+        run: docker compose up -d db mailcatcher
+
+      - name: Wait for DB to be ready
+        run: |
+          CONTAINER=$(docker ps --filter "name=db" --format "{{.Names}}")
+          echo "DB container is: $CONTAINER"
+
+          for i in {1..30}; do
+            echo "Checking DB... ($i/30)"
+            docker exec $CONTAINER pg_isready -U postgres && break
+            sleep 2
+          done
+
+          echo "DB is ready!"
+
+      - name: Install backend deps
+        run: uv sync
+        working-directory: backend
+
+      - name: Migrate DB (prestart)
         run: uv run bash scripts/prestart.sh
         working-directory: backend
+
       - name: Run tests
         run: uv run bash scripts/tests-start.sh "Coverage for ${{ github.sha }}"
         working-directory: backend
-      - run: docker compose down -v --remove-orphans
+
+      - name: Stop containers
+        run: docker compose down -v --remove-orphans
+
       - name: Store coverage files
         uses: actions/upload-artifact@v5
         with:
