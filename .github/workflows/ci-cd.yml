@@ -13,10 +13,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Run migrations
+        working-directory: backend
+        run: |
+          uv sync
+          uv run alembic upgrade head
 
       - name: Install uv
         run: |
