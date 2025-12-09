@@ -1,0 +1,11 @@
+services:
+  backend:
+    ports:
+      - "8000:8000"   # opcional, puedes apagarlo luego
+
+  frontend:
+    ports:
+      - "80:80"       # frontend será accesible desde IP pública
+
+  db:
+    ports: []         # NUNCA exponer Postgres al público
