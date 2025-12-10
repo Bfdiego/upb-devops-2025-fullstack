@@ -102,7 +102,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/app/full-stack-fastapi-template
+            cd /home/ubuntu/app/upb-devops-2025-fullstack
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker ps
