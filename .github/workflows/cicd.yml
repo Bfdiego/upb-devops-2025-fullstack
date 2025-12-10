@@ -23,19 +23,18 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install Poetry
+        run: pip install poetry
+  
       - name: Install backend deps
         working-directory: backend
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          poetry install --no-root
 
       - name: Backend smoke test (import app)
         working-directory: backend
         run: |
-          source .venv/bin/activate
-          python -c "import app.main; print('FastAPI app import OK')"
+          poetry run python -c "import app.main; print('FastAPI app import OK')"
 
       # Frontend: instalar deps y construir (build = tu prueba mínima)
       - name: Setup Node
