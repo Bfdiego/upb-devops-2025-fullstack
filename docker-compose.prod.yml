@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_USER: postgres
+      POSTGRES_DB: app
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    image: bfdiego/fullstack-backend:latest
+    container_name: backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    image: bfdiego/fullstack-frontend:latest
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
